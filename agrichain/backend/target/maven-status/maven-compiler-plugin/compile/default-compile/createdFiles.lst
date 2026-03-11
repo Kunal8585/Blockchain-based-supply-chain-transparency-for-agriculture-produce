@@ -1,0 +1,13 @@
+com\agrichain\repository\ProductRepository.class
+com\agrichain\repository\ShipmentRepository.class
+com\agrichain\model\Shipment.class
+com\agrichain\service\ShipmentService.class
+com\agrichain\model\Producer.class
+com\agrichain\repository\ProducerRepository.class
+com\agrichain\model\Block.class
+com\agrichain\model\Product.class
+com\agrichain\service\ProducerService.class
+com\agrichain\AgrichainApplication.class
+com\agrichain\blockchain\BlockchainService.class
+com\agrichain\repository\BlockRepository.class
+com\agrichain\service\ProductService.class
