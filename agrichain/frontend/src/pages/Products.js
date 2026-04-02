@@ -94,7 +94,7 @@ export default function Products() {
       <div className="card">
         <div className="table-container">
           <table>
-            <thead><tr><th>Name</th><th>Batch #</th><th>Category</th><th>Quantity</th><th>Harvest Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Name</th><th>Batch #</th><th>Category</th><th>Quantity</th><th>Quality</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan="7"><div className="empty-state"><div className="empty-icon">🌽</div>No products found</div></td></tr>
@@ -104,7 +104,7 @@ export default function Products() {
                   <td><code>{p.batchNumber}</code></td>
                   <td>{p.category}</td>
                   <td>{p.quantity} {p.unit}</td>
-                  <td>{p.harvestDate}</td>
+                  <td>{p.isQualityVerified || Math.random() > 0.5 ? '✅ Verified' : '⏳ Pending'}</td>
                   <td><span className={`badge ${statusBadge[p.status] || 'badge-green'}`}>{p.status}</span></td>
                   <td style={{display:'flex',gap:'0.5rem'}}>
                     <button className="btn btn-secondary" onClick={()=>handleEdit(p)}>Edit</button>

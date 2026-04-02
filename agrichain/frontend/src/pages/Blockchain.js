@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getBlockchain, validateChain, getProducts } from '../services/api';
+import { useWeb3 } from '../hooks/useWeb3';
 
 export default function Blockchain() {
   const [blocks, setBlocks] = useState([]);
@@ -7,6 +8,9 @@ export default function Blockchain() {
   const [selectedProduct, setSelectedProduct] = useState('');
   const [validity, setValidity] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const { connectWallet, address, getBatchHistory } = useWeb3();
+  const [scannedBatchId, setScannedBatchId] = useState('');
+  const [scannedData, setScannedData] = useState(null);
 
   useEffect(() => {
     getProducts().then(r => setProducts(r.data)).catch(() => {});
@@ -30,6 +34,18 @@ export default function Blockchain() {
       const obj = JSON.parse(data);
       return (obj.stage || '') + ' | ' + (obj.fromLocation || '') + ' → ' + (obj.toLocation || '') + ' | by ' + (obj.handledBy || '');
     } catch { return data; }
+  };
+
+  const handleQRScan = async () => {
+    if (!address) await connectWallet();
+    if (scannedBatchId) {
+        try {
+            const data = await getBatchHistory(scannedBatchId);
+            setScannedData(data);
+        } catch (e) {
+            alert("Batch not found on Ethereum blockchain");
+        }
+    }
   };
 
   return (
@@ -85,6 +101,27 @@ export default function Blockchain() {
           ))}
         </div>
       )}
+
+      {/* QR Scan Integration */}
+      <div className="card glassmorphism" style={{marginTop: '2rem'}}>
+        <h2 style={{color: '#1976d2', marginBottom: '1rem'}}>📱 QR Scan Blockchain Trace</h2>
+        <p>Mock QR scanner for Consumers. Enter a Produce Batch ID to fetch direct smart-contract lifecycle events.</p>
+        <div style={{display: 'flex', gap: '1rem', marginTop: '1rem'}}>
+            <input type="text" placeholder="Enter Batch ID (e.g. 1)" value={scannedBatchId} onChange={e => setScannedBatchId(e.target.value)} style={{flex: 1, padding: '0.5rem'}}/>
+            <button className="btn btn-primary" onClick={handleQRScan}>Scan & Verify 🔎</button>
+        </div>
+        {scannedData && (
+            <div style={{marginTop: '1.5rem', padding: '1rem', background: '#e8f5e9', border: '1px solid #2e7d32', borderRadius: '4px'}}>
+                <h4 style={{color: '#2e7d32'}}>Verified Web3 Batch Data</h4>
+                <p><strong>Batch ID:</strong> {scannedData.id}</p>
+                <p><strong>Crop Type:</strong> {scannedData.cropType}</p>
+                <p><strong>Current Owner:</strong> {scannedData.currentOwner}</p>
+                <p><strong>Location:</strong> {scannedData.location}</p>
+                <p><strong>Timestamp:</strong> {scannedData.timestamp}</p>
+                <p><strong>Inspector Verified:</strong> {scannedData.isQualityVerified ? '✅ Yes' : '⏳ Pending'}</p>
+            </div>
+        )}
+      </div>
     </div>
   );
 }

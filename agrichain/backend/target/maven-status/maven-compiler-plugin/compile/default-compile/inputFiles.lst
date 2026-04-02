@@ -1,6 +1,8 @@
 K:\mini-project\agrichain\backend\src\main\java\com\agrichain\model\Block.java
 K:\mini-project\agrichain\backend\src\main\java\com\agrichain\repository\ProductRepository.java
 K:\mini-project\agrichain\backend\src\main\java\com\agrichain\repository\ShipmentRepository.java
+K:\mini-project\agrichain\backend\src\main\java\com\agrichain\controller\AuthController.java
+K:\mini-project\agrichain\backend\src\main\java\com\agrichain\model\User.java
 K:\mini-project\agrichain\backend\src\main\java\com\agrichain\model\Shipment.java
 K:\mini-project\agrichain\backend\src\main\java\com\agrichain\repository\ProducerRepository.java
 K:\mini-project\agrichain\backend\src\main\java\com\agrichain\service\ShipmentService.java
@@ -8,6 +10,12 @@ K:\mini-project\agrichain\backend\src\main\java\com\agrichain\AgrichainApplicati
 K:\mini-project\agrichain\backend\src\main\java\com\agrichain\blockchain\BlockchainService.java
 K:\mini-project\agrichain\backend\src\main\java\com\agrichain\model\Producer.java
 K:\mini-project\agrichain\backend\src\main\java\com\agrichain\service\ProducerService.java
+K:\mini-project\agrichain\backend\src\main\java\com\agrichain\security\CustomUserDetailsService.java
+K:\mini-project\agrichain\backend\src\main\java\com\agrichain\security\JwtAuthenticationFilter.java
 K:\mini-project\agrichain\backend\src\main\java\com\agrichain\service\ProductService.java
+K:\mini-project\agrichain\backend\src\main\java\com\agrichain\controller\StatsController.java
+K:\mini-project\agrichain\backend\src\main\java\com\agrichain\repository\UserRepository.java
+K:\mini-project\agrichain\backend\src\main\java\com\agrichain\security\SecurityConfig.java
 K:\mini-project\agrichain\backend\src\main\java\com\agrichain\model\Product.java
 K:\mini-project\agrichain\backend\src\main\java\com\agrichain\repository\BlockRepository.java
+K:\mini-project\agrichain\backend\src\main\java\com\agrichain\security\JwtService.java
