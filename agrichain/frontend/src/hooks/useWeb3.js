@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { ethers } from 'ethers';
 import AgriChainArtifact from '../artifacts/AgriChain.json';
 
-const CONTRACT_ADDRESS = process.env.REACT_APP_CONTRACT_ADDRESS || "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const CONTRACT_ADDRESS = process.env.REACT_APP_CONTRACT_ADDRESS || "0x06b7874759380197E25329348CB41eA9365cF773";
 const GANACHE_RPC = "http://127.0.0.1:7545";
 
 export function useWeb3() {
@@ -29,12 +29,12 @@ export function useWeb3() {
             try {
                 const roleIndex = await signedContract.roles(addr);
                 setRole(ROLES[Number(roleIndex)]);
-            } catch(e) {
+            } catch (e) {
                 setRole('None');
             }
 
             return signedContract;
-        } catch(e) {
+        } catch (e) {
             console.error('MetaMask connection failed', e);
         }
     };
@@ -57,11 +57,11 @@ export function useWeb3() {
                 isQualityVerified: batch.isQualityVerified,
                 ownerRole: ROLES[Number(batch.ownerRole)],
             };
-        } catch(e) {
+        } catch (e) {
             console.error('Failed to fetch batch from chain', e);
             throw e;
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Signed write: create a new batch (Farmer only)
@@ -71,7 +71,7 @@ export function useWeb3() {
         const tx = await _contract.createBatch(cropType, location);
         const receipt = await tx.wait();
         return receipt;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [contract]);
 
     // Signed write: assign a role to a wallet (open for demo; in prod, admin only)
@@ -80,7 +80,7 @@ export function useWeb3() {
         if (!_contract) _contract = await connectWallet();
         const tx = await _contract.assignRole(walletAddress, roleIndex);
         await tx.wait();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [contract]);
 
     return { connectWallet, address, role, contract, getBatchHistory, createBatch, assignRole };
