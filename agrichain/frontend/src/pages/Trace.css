@@ -1,0 +1,218 @@
+.trace-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #f8fafc;
+  font-family: 'Inter', -apple-system, sans-serif;
+  padding: 3rem 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.trace-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  max-width: 600px;
+  width: 100%;
+  padding: 2.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.trace-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  background: linear-gradient(to right, #4ade80, #3b82f6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-align: center;
+}
+
+.summary-box {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+}
+
+.summary-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.quality-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.quality-verified {
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.quality-pending {
+  background: rgba(250, 204, 21, 0.2);
+  color: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.3);
+}
+
+.loader {
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 4rem auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-card {
+  text-align: center;
+  padding: 3rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 12px;
+  color: #fca5a5;
+}
+
+/* AMAZON STEPPER STYLES */
+.stepper-container {
+    display: flex;
+    flex-direction: column;
+    margin-top: 2rem;
+}
+
+.step-item {
+    display: flex;
+    margin-bottom: 0;
+}
+
+.step-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 1.5rem;
+}
+
+.step-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    z-index: 2;
+    transition: all 0.3s ease;
+}
+
+.step-circle.completed {
+    background-color: #228b22; /* Forest Green */
+    box-shadow: 0 0 0 6px rgba(34, 139, 34, 0.2);
+}
+
+.step-circle.pending {
+    background-color: #d3d3d3; /* Light Gray */
+    box-shadow: 0 0 0 4px rgba(211, 211, 211, 0.1);
+}
+
+.step-line {
+    flex: 1;
+    width: 3px;
+    margin: 8px 0;
+    min-height: 40px;
+    transition: background-color 0.3s ease;
+}
+
+.step-line.completed {
+    background-color: #228b22;
+}
+
+.step-line.pending {
+    background-color: #475569;
+}
+
+.step-content {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1.25rem;
+    border-radius: 12px;
+    margin-top: -0.5rem;
+    margin-bottom: 2rem;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.step-content:hover {
+  transform: translateX(4px);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.step-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.step-title.completed {
+    color: #4ade80;
+}
+
+.step-title.pending {
+    color: #94a3b8;
+}
+
+.step-details p {
+    margin: 0.35rem 0;
+    color: #cbd5e1;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.ledger-link {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 0.5rem;
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 0.85rem;
+    border: 1px solid rgba(59, 130, 246, 0.5);
+    padding: 0.3rem 0.75rem;
+    border-radius: 6px;
+    transition: all 0.2s;
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.ledger-link:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: #3b82f6;
+}

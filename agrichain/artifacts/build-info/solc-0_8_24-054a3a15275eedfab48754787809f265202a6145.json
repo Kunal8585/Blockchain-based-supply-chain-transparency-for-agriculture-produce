@@ -1,0 +1,36 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_24-054a3a15275eedfab48754787809f265202a6145",
+  "solcVersion": "0.8.24",
+  "solcLongVersion": "0.8.24+commit.e11b9ed9",
+  "compilerType": "solc",
+  "userSourceNameMap": {
+    "contracts/AgriChain.sol": "project/contracts/AgriChain.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "shanghai",
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/AgriChain.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract AgriChain {\n    enum Role { None, Admin, Farmer, Distributor, Inspector, Retailer }\n    \n    struct Batch {\n        uint256 id;\n        string cropType;\n        address currentOwner;\n        string location;\n        uint256 timestamp;\n        bool isQualityVerified;\n        Role ownerRole;\n    }\n\n    mapping(address => Role) public roles;\n    mapping(uint256 => Batch) public batches;\n    uint256 public batchCount;\n\n    modifier onlyRole(Role _role) {\n        require(roles[msg.sender] == _role, \"Not authorized\");\n        _;\n    }\n\n    // Assign roles (In a real app, Admin would do this)\n    function assignRole(address _user, Role _role) public {\n        roles[_user] = _role;\n    }\n\n    function createBatch(string memory _crop, string memory _loc) public onlyRole(Role.Farmer) {\n        batchCount++;\n        batches[batchCount] = Batch(batchCount, _crop, msg.sender, _loc, block.timestamp, false, Role.Farmer);\n    }\n\n    function verifyQuality(uint256 _id) public onlyRole(Role.Inspector) {\n        batches[_id].isQualityVerified = true;\n    }\n\n    function getBatch(uint256 _id) public view returns (Batch memory) {\n        return batches[_id];\n    }\n}"
+      }
+    }
+  }
+}

@@ -1,61 +1,87 @@
 import { useState, useCallback } from 'react';
 import { ethers } from 'ethers';
+import AgriChainArtifact from '../artifacts/AgriChain.json';
 
-// Defining minimal abi to prevent hard dependency crashes if contract not compiled
-const minimalAbi = [
-  "function createBatch(string _cropType, string _location)",
-  "function transferBatch(uint _id, address _nextCustodian, string _newLocation)",
-  "function verifyQuality(uint _id)",
-  "function batches(uint) view returns (uint id, string cropType, address currentOwner, string location, uint timestamp, bool isQualityVerified)",
-  "event BatchCreated(uint indexed id, string cropType, address indexed owner, string location, uint timestamp)",
-  "event BatchTransferred(uint indexed id, address indexed previousOwner, address indexed newOwner, string newLocation, uint timestamp)",
-  "event QualityVerified(uint indexed id, address indexed inspector, uint timestamp)"
-];
+const CONTRACT_ADDRESS = process.env.REACT_APP_CONTRACT_ADDRESS || "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const GANACHE_RPC = "http://127.0.0.1:7545";
 
 export function useWeb3() {
-    const [provider, setProvider] = useState(null);
     const [contract, setContract] = useState(null);
-    const [address, setAddress] = useState("");
+    const [address, setAddress] = useState('');
+    const [role, setRole] = useState(null); // fetched from contract
+
+    const ROLES = ['None', 'Admin', 'Farmer', 'Distributor', 'Inspector', 'Retailer'];
 
     const connectWallet = async () => {
-        if (!window.ethereum) return alert("Please install MetaMask or a Web3 provider");
+        if (!window.ethereum) return alert('Please install MetaMask!');
         try {
             await window.ethereum.request({ method: 'eth_requestAccounts' });
             const web3Provider = new ethers.BrowserProvider(window.ethereum);
-            const signer = await web3Provider.getSigner();
-            const addr = await signer.getAddress();
-            
-            // Expected contract address from Hardhat local node once deployed
-            const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS || "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-            const agrichainContract = new ethers.Contract(contractAddress, minimalAbi, signer);
+            const _signer = await web3Provider.getSigner();
+            const addr = await _signer.getAddress();
 
-            setProvider(web3Provider);
-            setContract(agrichainContract);
+            const signedContract = new ethers.Contract(CONTRACT_ADDRESS, AgriChainArtifact.abi, _signer);
+
+            setContract(signedContract);
             setAddress(addr);
+
+            // Fetch this wallet's role from the smart contract
+            try {
+                const roleIndex = await signedContract.roles(addr);
+                setRole(ROLES[Number(roleIndex)]);
+            } catch(e) {
+                setRole('None');
+            }
+
+            return signedContract;
         } catch(e) {
-            console.error("Connection failed", e);
+            console.error('MetaMask connection failed', e);
         }
     };
 
+    // Read-only: uses Ganache JsonRpcProvider, no MetaMask needed
     const getBatchHistory = useCallback(async (batchId) => {
-        if (!contract) return null;
         try {
-            const batch = await contract.batches(batchId);
-            // In a production app, we would query `queryFilter` for events to get complete history
-            // Here we return the latest state
+            const readProvider = new ethers.JsonRpcProvider(GANACHE_RPC);
+            const readContract = new ethers.Contract(CONTRACT_ADDRESS, AgriChainArtifact.abi, readProvider);
+            const batch = await readContract.getBatch(batchId);
+
+            if (Number(batch.id) === 0) return null;
+
             return {
-                id: batch.id.toString(),
+                id: Number(batch.id),
                 cropType: batch.cropType,
                 currentOwner: batch.currentOwner,
                 location: batch.location,
-                timestamp: new Date(Number(batch.timestamp) * 1000).toLocaleString(),
-                isQualityVerified: batch.isQualityVerified
+                timestamp: Number(batch.timestamp),
+                isQualityVerified: batch.isQualityVerified,
+                ownerRole: ROLES[Number(batch.ownerRole)],
             };
         } catch(e) {
-            console.error("Failed to fetch batch", e);
+            console.error('Failed to fetch batch from chain', e);
             throw e;
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Signed write: create a new batch (Farmer only)
+    const createBatch = useCallback(async (cropType, location) => {
+        let _contract = contract;
+        if (!_contract) _contract = await connectWallet();
+        const tx = await _contract.createBatch(cropType, location);
+        const receipt = await tx.wait();
+        return receipt;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [contract]);
 
-    return { connectWallet, address, contract, getBatchHistory };
+    // Signed write: assign a role to a wallet (open for demo; in prod, admin only)
+    const assignRole = useCallback(async (walletAddress, roleIndex) => {
+        let _contract = contract;
+        if (!_contract) _contract = await connectWallet();
+        const tx = await _contract.assignRole(walletAddress, roleIndex);
+        await tx.wait();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [contract]);
+
+    return { connectWallet, address, role, contract, getBatchHistory, createBatch, assignRole };
 }

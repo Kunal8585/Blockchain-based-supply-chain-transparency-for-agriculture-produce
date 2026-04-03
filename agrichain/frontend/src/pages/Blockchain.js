@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getBlockchain, validateChain, getProducts } from '../services/api';
 import { useWeb3 } from '../hooks/useWeb3';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
 export default function Blockchain() {
   const [blocks, setBlocks] = useState([]);
@@ -11,6 +12,43 @@ export default function Blockchain() {
   const { connectWallet, address, getBatchHistory } = useWeb3();
   const [scannedBatchId, setScannedBatchId] = useState('');
   const [scannedData, setScannedData] = useState(null);
+  const [showScanner, setShowScanner] = useState(false);
+
+  useEffect(() => {
+    if (showScanner) {
+      const scanner = new Html5QrcodeScanner('consumer-qr-reader', { fps: 10, qrbox: {width: 250, height: 250} }, false);
+      scanner.render((text) => {
+        scanner.clear();
+        setShowScanner(false);
+        try {
+          const parts = text.split('/');
+          const batchId = parts[parts.length - 1]; // Extract ID
+          setScannedBatchId(batchId);
+          triggerAutoScan(batchId);
+        } catch (e) {
+          alert('Invalid QR Format: ' + text);
+        }
+      }, (err) => { /* ignore */ });
+      return () => { try { scanner.clear(); } catch(e){} };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showScanner, products, address]);
+
+  const triggerAutoScan = async (batchId) => {
+    if (!address) await connectWallet().catch(()=>{});
+    try {
+        const data = await getBatchHistory(batchId);
+        setScannedData(data);
+        const matched = products.find(p => p.batchNumber === batchId || String(p.id) === batchId);
+        if (matched) {
+            setSelectedProduct(matched.id);
+            const r = await getBlockchain(matched.id);
+            setBlocks(r.data); setLoaded(true);
+        }
+    } catch (e) {
+        alert("Batch not found on Ethereum blockchain");
+    }
+  };
 
   useEffect(() => {
     getProducts().then(r => setProducts(r.data)).catch(() => {});
@@ -34,18 +72,6 @@ export default function Blockchain() {
       const obj = JSON.parse(data);
       return (obj.stage || '') + ' | ' + (obj.fromLocation || '') + ' → ' + (obj.toLocation || '') + ' | by ' + (obj.handledBy || '');
     } catch { return data; }
-  };
-
-  const handleQRScan = async () => {
-    if (!address) await connectWallet();
-    if (scannedBatchId) {
-        try {
-            const data = await getBatchHistory(scannedBatchId);
-            setScannedData(data);
-        } catch (e) {
-            alert("Batch not found on Ethereum blockchain");
-        }
-    }
   };
 
   return (
@@ -105,20 +131,30 @@ export default function Blockchain() {
       {/* QR Scan Integration */}
       <div className="card glassmorphism" style={{marginTop: '2rem'}}>
         <h2 style={{color: '#1976d2', marginBottom: '1rem'}}>📱 QR Scan Blockchain Trace</h2>
-        <p>Mock QR scanner for Consumers. Enter a Produce Batch ID to fetch direct smart-contract lifecycle events.</p>
-        <div style={{display: 'flex', gap: '1rem', marginTop: '1rem'}}>
-            <input type="text" placeholder="Enter Batch ID (e.g. 1)" value={scannedBatchId} onChange={e => setScannedBatchId(e.target.value)} style={{flex: 1, padding: '0.5rem'}}/>
-            <button className="btn btn-primary" onClick={handleQRScan}>Scan & Verify 🔎</button>
-        </div>
-        {scannedData && (
-            <div style={{marginTop: '1.5rem', padding: '1rem', background: '#e8f5e9', border: '1px solid #2e7d32', borderRadius: '4px'}}>
-                <h4 style={{color: '#2e7d32'}}>Verified Web3 Batch Data</h4>
-                <p><strong>Batch ID:</strong> {scannedData.id}</p>
-                <p><strong>Crop Type:</strong> {scannedData.cropType}</p>
-                <p><strong>Current Owner:</strong> {scannedData.currentOwner}</p>
-                <p><strong>Location:</strong> {scannedData.location}</p>
-                <p><strong>Timestamp:</strong> {scannedData.timestamp}</p>
-                <p><strong>Inspector Verified:</strong> {scannedData.isQualityVerified ? '✅ Yes' : '⏳ Pending'}</p>
+        <p>Consumer Phygital Traceability. Scan a product's QR label to securely verify its entire lifecycle via smart contract.</p>
+        
+        {!showScanner ? (
+          <button className="btn btn-primary" onClick={() => setShowScanner(true)}>
+            📷 Scan Product QR
+          </button>
+        ) : (
+          <div style={{marginTop: '1rem', background: '#fff', padding: '1rem', borderRadius: '12px', maxWidth: '400px'}}>
+            <div id="consumer-qr-reader" style={{width: '100%'}}></div>
+            <button className="btn btn-danger" style={{marginTop: '1rem'}} onClick={() => setShowScanner(false)}>Cancel Scan</button>
+          </div>
+        )}
+
+        {scannedData && !showScanner && (
+            <div style={{marginTop: '1.5rem', padding: '1.5rem', background: '#f5f7fa', borderLeft: '4px solid #2e7d32', borderRadius: '8px'}}>
+                <h3 style={{color: '#2e7d32', marginTop: 0}}>Verified Web3 Batch Data</h3>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
+                    <p><strong>Batch ID:</strong> #{scannedData.id}</p>
+                    <p><strong>Crop Type:</strong> {scannedData.cropType}</p>
+                    <p><strong>Current Owner:</strong> <span style={{fontSize: '0.85rem'}}>{scannedData.currentOwner}</span></p>
+                    <p><strong>Origin Location:</strong> {scannedData.location}</p>
+                    <p><strong>Harvest Time:</strong> {new Date(scannedData.timestamp * 1000).toLocaleString()}</p>
+                    <p><strong>Inspector Verified:</strong> {scannedData.isQualityVerified ? '✅ Yes' : '⏳ Pending'}</p>
+                </div>
             </div>
         )}
       </div>

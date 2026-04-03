@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getProducers, createProducer, updateProducer, deleteProducer } from '../services/api';
 
-const empty = { name: '', location: '', contactNumber: '', email: '', licenseNumber: '' };
+const empty = { name: '', location: '', walletAddress: '', contactNumber: '', email: '', licenseNumber: '' };
 
 export default function Producers() {
   const [producers, setProducers] = useState([]);
@@ -63,7 +63,7 @@ export default function Producers() {
       <div className="card">
         <div className="table-container">
           <table>
-            <thead><tr><th>Name</th><th>Location</th><th>Email</th><th>Contact</th><th>License</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Name</th><th>Location</th><th>Wallet Address</th><th>Email</th><th>Contact</th><th>License</th><th>Actions</th></tr></thead>
             <tbody>
               {producers.length === 0 ? (
                 <tr><td colSpan="6"><div className="empty-state"><div className="empty-icon">👨‍🌾</div>No producers yet</div></td></tr>
@@ -71,6 +71,13 @@ export default function Producers() {
                 <tr key={p.id}>
                   <td><strong>{p.name}</strong></td>
                   <td>{p.location}</td>
+                  <td>
+                    {p.walletAddress ? (
+                      <code style={{fontSize:'0.75rem', color:'#6a1b9a'}}>
+                        {p.walletAddress.substring(0,8)}...
+                      </code>
+                    ) : <span style={{color:'#bbb'}}>Not linked</span>}
+                  </td>
                   <td>{p.email}</td>
                   <td>{p.contactNumber}</td>
                   <td><span className="badge badge-green">{p.licenseNumber}</span></td>

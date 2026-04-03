@@ -1,4 +1,4 @@
-﻿.app { min-height: 100vh; }
+.app { min-height: 100vh; }
 .navbar {
   background: linear-gradient(135deg, #2e7d32, #1b5e20);
   color: white;
@@ -117,3 +117,62 @@ tr:hover { background: #fafafa; }
 .alert { padding: 0.8rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; }
 .alert-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
 .alert-error { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+
+/* Glassmorphism card */
+.glassmorphism {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+}
+
+/* Wallet connect button */
+.btn-wallet {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: white;
+  border: none;
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-wallet:hover { opacity: 0.85; }
+
+/* Wallet connected chip in navbar */
+.wallet-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 20px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.82rem;
+}
+.wallet-role {
+  background: #4ade80;
+  color: #064e3b;
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+}
+.wallet-addr { color: rgba(255,255,255,0.85); font-family: monospace; }
+
+/* Login button */
+.login-btn {
+  background: rgba(255,255,255,0.15);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.login-btn:hover { background: rgba(255,255,255,0.25); }

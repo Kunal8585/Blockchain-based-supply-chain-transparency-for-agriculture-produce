@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { ethers } from 'ethers';
+import AgriChainArtifact from '../artifacts/AgriChain.json';
+import QRCodeGenerator from '../components/QRCodeGenerator';
+
+const CONTRACT_ADDRESS = process.env.REACT_APP_CONTRACT_ADDRESS || "0xYourDeployedContractAddressHere";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ producers: 0, products: 0, shipments: 0, chainValid: true });
+  const [latestBatch, setLatestBatch] = useState(null);
+  const [loadingWeb3, setLoadingWeb3] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('agrichainToken');
@@ -23,6 +30,31 @@ export default function Dashboard() {
     })
     .catch((err) => console.error("Dashboard fetch error:", err));
   }, []);
+
+  useEffect(() => {
+    const fetchLatestBatch = async () => {
+      try {
+        const provider = new ethers.JsonRpcProvider("http://127.0.0.1:7545");
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, AgriChainArtifact.abi, provider);
+        const count = await contract.batchCount();
+        if (Number(count) > 0) {
+          const batch = await contract.getBatch(count);
+          setLatestBatch({
+            id: Number(batch.id),
+            cropType: batch.cropType,
+            location: batch.location,
+            isQualityVerified: batch.isQualityVerified
+          });
+        }
+      } catch (err) {
+        console.error("Web3 lookup failed:", err);
+      } finally {
+        setLoadingWeb3(false);
+      }
+    };
+    fetchLatestBatch();
+  }, []);
+
 
   const stages = ['🌾 Farm', '🏭 Warehouse', '🚚 Distributor', '🏪 Retailer'];
 
@@ -95,13 +127,24 @@ export default function Dashboard() {
           </div>
           
           <div style={{flex: 1, minWidth: '300px', padding: '1rem', background: '#f5f7fa', borderRadius: '8px', borderLeft: '4px solid #ff9800'}}>
-            <h3 style={{color: '#333'}}>SupplyChain State</h3>
-            <ul style={{listStyle: 'none', padding: 0, marginTop: '1rem', lineHeight: '1.8'}}>
-              <li>🆔 <strong>produceId:</strong> #01452</li>
-              <li>📍 <strong>origin:</strong> Pune, Maharashtra</li>
-              <li>📦 <strong>currentLocation:</strong> Mumbai Warehouse</li>
-              <li>✅ <strong>isInspected:</strong> True</li>
-            </ul>
+            <h3 style={{color: '#333'}}>Latest SupplyChain Batch</h3>
+            {loadingWeb3 ? (
+              <p>Loading blockchain data...</p>
+            ) : latestBatch ? (
+              <>
+                <ul style={{listStyle: 'none', padding: 0, marginTop: '1rem', lineHeight: '1.8'}}>
+                  <li>🆔 <strong>produceId:</strong> #{latestBatch.id}</li>
+                  <li>🌾 <strong>cropType:</strong> {latestBatch.cropType}</li>
+                  <li>📍 <strong>currentLocation:</strong> {latestBatch.location}</li>
+                  <li>✅ <strong>isInspected:</strong> {latestBatch.isQualityVerified ? 'True' : 'Pending'}</li>
+                </ul>
+                <div style={{marginTop: '1.5rem'}}>
+                  <QRCodeGenerator batchId={latestBatch.id} />
+                </div>
+              </>
+            ) : (
+              <p>No batches found on blockchain. Ask a Farmer to create one.</p>
+            )}
           </div>
         </div>
       </div>

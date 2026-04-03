@@ -1,8 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { getShipments, getProducts, createShipment, deleteShipment } from '../services/api';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
-const stages = ['FARM', 'WAREHOUSE', 'DISTRIBUTOR', 'RETAILER'];
-const stageBadge = { FARM:'badge-green', WAREHOUSE:'badge-blue', DISTRIBUTOR:'badge-orange', RETAILER:'badge-purple' };
+const stages = ['FARM', 'IN_TRANSIT', 'WAREHOUSE', 'RETAIL', 'DISTRIBUTOR'];
+
+const getStageColor = (stage) => {
+  const upper = stage?.toUpperCase() || '';
+  if (upper === 'FARM') return '#8D6E63'; // Brown
+  if (upper === 'IN_TRANSIT' || upper === 'WAREHOUSE') return '#3b82f6'; // Blue
+  if (upper === 'RETAIL' || upper === 'DELIVERED') return '#4ade80'; // Green
+  return '#94a3b8'; // Default grey
+};
+
+const formatStage = (stage) => {
+  const upper = stage?.toUpperCase() || '';
+  if (upper === 'FARM') return '🚜 ' + stage;
+  if (upper === 'IN_TRANSIT' || upper === 'WAREHOUSE') return '🚚 ' + stage;
+  if (upper === 'RETAIL' || upper === 'DELIVERED') return '✅ ' + stage;
+  return stage;
+};
+
 const empty = { productId:'', fromLocation:'', toLocation:'', stage:'FARM', handledBy:'', notes:'' };
 
 export default function Shipments() {
@@ -10,6 +27,7 @@ export default function Shipments() {
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(empty);
   const [showForm, setShowForm] = useState(false);
+  const [scanActive, setScanActive] = useState(false);
   const [msg, setMsg] = useState(null);
 
   const load = () => {
@@ -18,6 +36,35 @@ export default function Shipments() {
   };
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (scanActive) {
+      const scanner = new Html5QrcodeScanner('shipment-qr-reader', { fps: 10, qrbox: {width: 250, height: 250} }, false);
+      scanner.render((text) => {
+        scanner.clear();
+        setScanActive(false);
+        try {
+          const parts = text.split('/');
+          const batchId = parts[parts.length - 1]; // Extract ID
+          const matched = products.find(p => p.batchNumber === batchId || String(p.id) === batchId);
+          if (matched) {
+            setForm(prev => ({...prev, productId: matched.id, fromLocation: 'Scanned from QR', stage: 'RETAIL'}));
+            setShowForm(true);
+            setMsg({type:'success', text:`Product matched: ${matched.name} (${batchId})`});
+          } else {
+            alert('No product found for scanned batch: ' + batchId);
+          }
+        } catch (e) {
+          alert('Invalid QR Format: ' + text);
+        }
+      }, (err) => {
+        // ignore verbose scan errors while looking for code
+      });
+      return () => {
+        try { scanner.clear(); } catch(e) {}
+      };
+    }
+  }, [scanActive, products]);
 
   const handleSubmit = async () => {
     try {
@@ -37,12 +84,32 @@ export default function Shipments() {
     <div>
       <div className="page-header" style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
         <div><h1>Shipments</h1><p>Record supply chain movements — each shipment is added to the blockchain</p></div>
-        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>+ Add Shipment</button>
+        <div style={{display: 'flex', gap: '1rem'}}>
+          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+            + Add Shipment
+          </button>
+        </div>
       </div>
+      
+      {scanActive && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000}}>
+          <div style={{ background: '#fff', padding: '1rem', borderRadius: '12px', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{margin: '0 0 1rem 0', color: '#333'}}>Scan Product QR Label</h3>
+            <div id="shipment-qr-reader" style={{width: '100%'}}></div>
+            <button className="btn btn-danger" style={{marginTop: '1rem'}} onClick={() => setScanActive(false)}>Cancel Scan</button>
+          </div>
+        </div>
+      )}
+
       {msg && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
       {showForm && (
         <div className="card">
-          <h3 style={{marginBottom:'1rem'}}>Record New Shipment</h3>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
+            <h3 style={{margin: 0}}>Record New Shipment</h3>
+            <button className="btn btn-secondary" onClick={() => setScanActive(!scanActive)}>
+              📷 Scan to Record
+            </button>
+          </div>
           <div className="form-grid">
             <div className="form-group">
               <label>Product</label>
@@ -78,12 +145,15 @@ export default function Shipments() {
               ) : shipments.map(s => (
                 <tr key={s.id}>
                   <td><strong>{getProductName(s.productId)}</strong></td>
-                  <td><span className={`badge ${stageBadge[s.stage] || 'badge-green'}`}>{s.stage}</span></td>
+                  <td><span className="badge" style={{backgroundColor: getStageColor(s.stage), color: 'white'}}>{formatStage(s.stage)}</span></td>
                   <td>{s.fromLocation}</td>
                   <td>{s.toLocation}</td>
                   <td>{s.handledBy}</td>
                   <td style={{fontSize:'0.85rem',color:'#888'}}>{new Date(s.timestamp).toLocaleString()}</td>
-                  <td><button className="btn btn-danger" onClick={()=>handleDelete(s.id)}>Delete</button></td>
+                  <td style={{display:'flex',gap:'0.5rem',alignItems:'center'}}>
+                    <a href={`https://etherscan.io/tx/0xmock${s.id}hash`} target="_blank" rel="noreferrer" style={{color: '#3b82f6', fontSize: '0.85rem', textDecoration: 'underline'}}>View Tx</a>
+                    <button className="btn btn-danger" style={{padding: '0.3rem 0.6rem'}} onClick={()=>handleDelete(s.id)}>Delete</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
