@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { getBlockchain, validateChain, getProducts } from '../services/api';
 import { useWeb3 } from '../hooks/useWeb3';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 
+import { getProductByBatch, getProduct } from '../services/api';
+
 export default function Blockchain() {
-  const [blocks, setBlocks] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState('');
-  const [validity, setValidity] = useState(null);
-  const [loaded, setLoaded] = useState(false);
-  const { connectWallet, address, getBatchHistory } = useWeb3();
+  const { getBatchHistory } = useWeb3();
   const [scannedBatchId, setScannedBatchId] = useState('');
   const [scannedData, setScannedData] = useState(null);
   const [showScanner, setShowScanner] = useState(false);
@@ -18,11 +14,13 @@ export default function Blockchain() {
     if (showScanner) {
       const scanner = new Html5QrcodeScanner('consumer-qr-reader', { fps: 10, qrbox: {width: 250, height: 250} }, false);
       scanner.render((text) => {
+        alert("Scanner Triggered!");
         scanner.clear();
         setShowScanner(false);
         try {
           const parts = text.split('/');
           const batchId = parts[parts.length - 1]; // Extract ID
+          console.log("Scanned ID:", batchId);
           setScannedBatchId(batchId);
           triggerAutoScan(batchId);
         } catch (e) {
@@ -32,101 +30,49 @@ export default function Blockchain() {
       return () => { try { scanner.clear(); } catch(e){} };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showScanner, products, address]);
+  }, [showScanner]);
 
   const triggerAutoScan = async (batchId) => {
-    if (!address) await connectWallet().catch(()=>{});
     try {
+        let dbData = null;
+        try {
+            // First try database lookup (Product may not be on local Ganache yet)
+            const res = await getProductByBatch(batchId).catch(() => getProduct(batchId));
+            if (res && res.data) {
+                dbData = res.data;
+            }
+        } catch (err) {
+            console.log("DB lookup failed");
+        }
+
         const data = await getBatchHistory(batchId);
-        setScannedData(data);
-        const matched = products.find(p => p.batchNumber === batchId || String(p.id) === batchId);
-        if (matched) {
-            setSelectedProduct(matched.id);
-            const r = await getBlockchain(matched.id);
-            setBlocks(r.data); setLoaded(true);
+        
+        if (data) {
+            setScannedData(data);
+        } else if (dbData) {
+            // Construct a blockchain-like object from DB data so the UI works
+            setScannedData({
+                id: dbData.batchNumber || dbData.id,
+                cropType: dbData.name + " (" + dbData.category + ")",
+                currentOwner: dbData.producerWallet || dbData.producerId || "0xDatabaseEntry",
+                location: "DB Registered (Pending Block)",
+                timestamp: Math.floor(new Date(dbData.harvestDate || Date.now()).getTime() / 1000),
+                isQualityVerified: dbData.status === 'DELIVERED'
+            });
+        } else {
+            setScannedData(null);
+            alert("No product found on the blockchain or database for ID: " + batchId);
         }
     } catch (e) {
         alert("Batch not found on Ethereum blockchain");
     }
   };
 
-  useEffect(() => {
-    getProducts().then(r => setProducts(r.data)).catch(() => {});
-  }, []);
-
-  const loadChain = async () => {
-    if (!selectedProduct) return;
-    try {
-      const r = await getBlockchain(selectedProduct);
-      setBlocks(r.data); setLoaded(true);
-    } catch { setBlocks([]); setLoaded(true); }
-  };
-
-  const checkValidity = async () => {
-    const r = await validateChain();
-    setValidity(r.data.valid);
-  };
-
-  const parseData = (data) => {
-    try {
-      const obj = JSON.parse(data);
-      return (obj.stage || '') + ' | ' + (obj.fromLocation || '') + ' → ' + (obj.toLocation || '') + ' | by ' + (obj.handledBy || '');
-    } catch { return data; }
-  };
-
   return (
     <div>
       <div className="page-header">
-        <h1>🔗 Blockchain Ledger</h1>
-        <p>Immutable SHA-256 linked chain of supply chain events</p>
+        <h1>🔗 Track/ Trace Product</h1>
       </div>
-      <div className="card" style={{display:'flex',gap:'1rem',alignItems:'flex-end',flexWrap:'wrap'}}>
-        <div className="form-group" style={{flex:1,minWidth:'200px'}}>
-          <label>Select Product to view its chain</label>
-          <select value={selectedProduct} onChange={e=>setSelectedProduct(e.target.value)}>
-            <option value="">-- Select Product --</option>
-            {products.map(p=><option key={p.id} value={p.id}>{p.name} ({p.batchNumber})</option>)}
-          </select>
-        </div>
-        <button className="btn btn-primary" onClick={loadChain}>View Chain</button>
-        <button className="btn btn-secondary" onClick={checkValidity}>Validate Entire Chain</button>
-      </div>
-      {validity !== null && (
-        <div className={`alert alert-${validity ? 'success' : 'error'}`}>
-          {validity ? '✅ Blockchain is valid — all hashes verified!' : '❌ Chain integrity compromised!'}
-        </div>
-      )}
-      {loaded && blocks.length === 0 && (
-        <div className="card"><div className="empty-state"><div className="empty-icon">🔗</div>No blocks found for this product</div></div>
-      )}
-      {blocks.length > 0 && (
-        <div className="block-chain">
-          {blocks.map((block, i) => (
-            <div key={block.id}>
-              <div className="block">
-                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'0.5rem'}}>
-                  <span className="block-index">Block #{block.index}</span>
-                  <span style={{fontSize:'0.8rem',color:'#888'}}>{new Date(block.timestamp).toLocaleString()}</span>
-                </div>
-                <div className="block-data">📦 {parseData(block.data)}</div>
-                <div style={{marginTop:'0.5rem'}}>
-                  <div style={{fontSize:'0.75rem',color:'#888'}}>Hash:</div>
-                  <div className="block-hash">{block.hash}</div>
-                </div>
-                {block.previousHash !== '0000000000000000' && (
-                  <div style={{marginTop:'0.3rem'}}>
-                    <div style={{fontSize:'0.75rem',color:'#888'}}>Previous Hash:</div>
-                    <div className="block-hash">{block.previousHash}</div>
-                  </div>
-                )}
-              </div>
-              {i < blocks.length - 1 && (
-                <div style={{textAlign:'center',fontSize:'1.5rem',color:'#2e7d32',lineHeight:'1'}}>↓</div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* QR Scan Integration */}
       <div className="card glassmorphism" style={{marginTop: '2rem'}}>
@@ -134,9 +80,22 @@ export default function Blockchain() {
         <p>Consumer Phygital Traceability. Scan a product's QR label to securely verify its entire lifecycle via smart contract.</p>
         
         {!showScanner ? (
-          <button className="btn btn-primary" onClick={() => setShowScanner(true)}>
-            📷 Scan Product QR
-          </button>
+          <div style={{display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap'}}>
+            <button className="btn btn-primary" onClick={() => setShowScanner(true)}>
+              📷 Scan Product QR
+            </button>
+            <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
+              <span style={{color: '#94a3b8'}}>or</span>
+              <input 
+                type="text" 
+                placeholder="Manual Batch ID" 
+                value={scannedBatchId} 
+                onChange={(e) => setScannedBatchId(e.target.value)}
+                style={{padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1'}}
+              />
+              <button className="btn btn-secondary" onClick={() => triggerAutoScan(scannedBatchId)}>Search</button>
+            </div>
+          </div>
         ) : (
           <div style={{marginTop: '1rem', background: '#fff', padding: '1rem', borderRadius: '12px', maxWidth: '400px'}}>
             <div id="consumer-qr-reader" style={{width: '100%'}}></div>

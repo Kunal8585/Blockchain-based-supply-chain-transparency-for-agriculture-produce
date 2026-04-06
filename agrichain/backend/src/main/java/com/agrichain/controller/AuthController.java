@@ -38,13 +38,22 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "User registered successfully"));
     }
 
+    @Autowired
+    private com.agrichain.security.JwtService jwtService;
+
+    @Autowired
+    private com.agrichain.security.CustomUserDetailsService userDetailsService;
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User request) {
         Optional<User> userOpt = userRepository.findByUsername(request.getUsername());
         
         if (userOpt.isPresent() && passwordEncoder.matches(request.getPassword(), userOpt.get().getPassword())) {
+            org.springframework.security.core.userdetails.UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
+            String token = jwtService.generateToken(userDetails);
             return ResponseEntity.ok(Map.of(
                 "message", "Login successful",
+                "token", token,
                 "username", userOpt.get().getUsername(),
                 "role", userOpt.get().getRole()
             ));

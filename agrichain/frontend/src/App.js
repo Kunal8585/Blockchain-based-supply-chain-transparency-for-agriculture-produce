@@ -22,18 +22,8 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const AppNavigation = () => {
-  const { isLoggedIn, logout } = useAuth();
-  const { connectWallet, address, role } = useWeb3Context();
-
-  // Helper to map numeric roles from Solidity to UI labels
-  // 2 = Farmer, 5 = Retailer
-  const getRoleLabel = (r) => {
-    if (r === 2 || r === '2' || r === 'Farmer') return 'Farmer';
-    if (r === 5 || r === '5' || r === 'Retailer') return 'Retailer';
-    return 'Consumer';
-  };
-
-  const currentRoleLabel = getRoleLabel(role);
+  const { isLoggedIn, logout, user } = useAuth();
+  const { connectWallet, address } = useWeb3Context();
 
   return (
     <nav className="navbar">
@@ -49,29 +39,25 @@ const AppNavigation = () => {
           </>
         ) : (
           <>
-            {/* Farmer View (Role 2) */}
-            {currentRoleLabel === 'Farmer' && (
+            {/* Show based on DATABASE role */}
+            {user?.role === 'Farmer' && (
               <>
                 <NavLink to="/producers" className={({ isActive }) => isActive ? 'active' : ''}>Producers</NavLink>
                 <NavLink to="/products" className={({ isActive }) => isActive ? 'active' : ''}>Products</NavLink>
               </>
             )}
 
-            {/* Retailer View (Role 5) - Amazon Style Logistics */}
-            {currentRoleLabel === 'Retailer' && (
+            {user?.role === 'Retailer' && (
               <NavLink to="/shipments" className={({ isActive }) => isActive ? 'active' : ''}>Shipments</NavLink>
             )}
 
-            {/* Public/Blockchain View */}
-            <NavLink to="/blockchain" className={({ isActive }) => isActive ? 'active' : ''}>Blockchain Ledger</NavLink>
+            <NavLink to="/blockchain" className={({ isActive }) => isActive ? 'active' : ''}>Track/ Trace Product</NavLink>
 
+            {/* Wallet is only for signing, not login */}
             {address ? (
-              <div className="wallet-chip">
-                <span className="wallet-role">{currentRoleLabel}</span>
-                <span className="wallet-addr">{address.substring(0, 6)}...{address.substring(38)}</span>
-              </div>
+               <span className="wallet-chip">Linked: {address.substring(0,6)}...</span>
             ) : (
-              <button onClick={connectWallet} className="btn-wallet">🦊 Connect Wallet</button>
+               <button onClick={connectWallet} className="btn-wallet">Link MetaMask</button>
             )}
 
             <button onClick={logout} className="login-btn-logout">Logout</button>

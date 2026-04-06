@@ -8,6 +8,7 @@ const AuthPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState('Consumer');
   const [error, setError] = useState(null);
   
   const { login } = useAuth();
@@ -17,7 +18,7 @@ const AuthPage = () => {
     e.preventDefault();
     setError(null);
     let endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
-    let payload = isLogin ? { username, password } : { username, email, password, role: 'Consumer' };
+    let payload = isLogin ? { username, password } : { username, email, password, role };
 
     try {
       const response = await fetch(`http://localhost:8080${endpoint}`, {
@@ -35,7 +36,9 @@ const AuthPage = () => {
       }
 
       if (isLogin) {
-        login(data.token);
+        // Here `data` contains username, role, and message from backend
+        // Creating a full user object to store context
+        login({ username: data.username, role: data.role }, data.token);
         navigate('/dashboard'); // Secure redirect to main dashboard
       } else {
         setIsLogin(true);
@@ -57,10 +60,20 @@ const AuthPage = () => {
             <input type="text" placeholder="Enter username" value={username} onChange={e=>setUsername(e.target.value)} required/>
           </div>
           {!isLogin && (
-            <div className="form-group">
-              <label>Email</label>
-              <input type="email" placeholder="Enter email" value={email} onChange={e=>setEmail(e.target.value)} required/>
-            </div>
+            <>
+              <div className="form-group">
+                <label>Email</label>
+                <input type="email" placeholder="Enter email" value={email} onChange={e=>setEmail(e.target.value)} required/>
+              </div>
+              <div className="form-group">
+                <label>Role</label>
+                <select name="role" value={role} onChange={e=>setRole(e.target.value)} required>
+                  <option value="Consumer">Consumer (General Public)</option>
+                  <option value="Farmer">Farmer (Producer)</option>
+                  <option value="Retailer">Retailer (Store Owner)</option>
+                </select>
+              </div>
+            </>
           )}
           <div className="form-group">
             <label>Password</label>
