@@ -14,22 +14,20 @@ export default function UpdateStatus() {
   const [message, setMessage] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
 
-  // Auto-connect to metamask
+  // Auto-connect bypassing MetaMask
   useEffect(() => {
-    const connectWallet = async () => {
-      if (window.ethereum) {
+    const connectDirectly = async () => {
         try {
-          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-          setWalletAddress(accounts[0]);
+            const GANACHE_RPC = process.env.REACT_APP_GANACHE_URL || "http://127.0.0.1:7545";
+            const provider = new ethers.JsonRpcProvider(GANACHE_RPC);
+            const signer = await provider.getSigner(0); // Using first local account
+            setWalletAddress(signer.address);
         } catch (err) {
-          console.error("Wallet connection failed", err);
-          setMessage("Failed to connect to MetaMask. Please try again.");
+            console.error("Direct connection failed", err);
+            setMessage("Failed to connect to local blockchain provider.");
         }
-      } else {
-        setMessage("MetaMask is not installed. Please install it to interact with the blockchain.");
-      }
     };
-    connectWallet();
+    connectDirectly();
   }, []);
 
   const handleUpdate = async (e) => {
@@ -43,8 +41,9 @@ export default function UpdateStatus() {
       setLoading(true);
       setMessage('');
       
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
+      const GANACHE_RPC = process.env.REACT_APP_GANACHE_URL || "http://127.0.0.1:7545";
+      const provider = new ethers.JsonRpcProvider(GANACHE_RPC);
+      const signer = await provider.getSigner(0);
       const contract = new ethers.Contract(CONTRACT_ADDRESS, AgriChainArtifact.abi, signer);
 
       const tx = await contract.updateStatus(id, newLocation);

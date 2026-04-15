@@ -56,8 +56,7 @@ export default function Blockchain() {
                 cropType: dbData.name + " (" + dbData.category + ")",
                 currentOwner: dbData.producerWallet || dbData.producerId || "0xDatabaseEntry",
                 location: "DB Registered (Pending Block)",
-                timestamp: Math.floor(new Date(dbData.harvestDate || Date.now()).getTime() / 1000),
-                isQualityVerified: dbData.status === 'DELIVERED'
+                timestamp: Math.floor(new Date(dbData.harvestDate || Date.now()).getTime() / 1000)
             });
         } else {
             setScannedData(null);
@@ -112,7 +111,6 @@ export default function Blockchain() {
                     <p><strong>Current Owner:</strong> <span style={{fontSize: '0.85rem'}}>{scannedData.currentOwner}</span></p>
                     <p><strong>Origin Location:</strong> {scannedData.location}</p>
                     <p><strong>Harvest Time:</strong> {new Date(scannedData.timestamp * 1000).toLocaleString()}</p>
-                    <p><strong>Inspector Verified:</strong> {scannedData.isQualityVerified ? '✅ Yes' : '⏳ Pending'}</p>
                 </div>
             </div>
         )}

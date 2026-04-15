@@ -52,7 +52,7 @@ export function useWeb3() {
                 id: Number(batch.id),
                 cropType: batch.cropType,
                 currentOwner: batch.currentOwner,
-                location: batch.location,
+                location: batch.location || "Location not found",
                 timestamp: Number(batch.timestamp),
                 isQualityVerified: batch.isQualityVerified,
                 ownerRole: ROLES[Number(batch.ownerRole)],
@@ -64,15 +64,29 @@ export function useWeb3() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Signed write: create a new batch (Farmer only)
+    // Direct write: create a new batch (Bypasses MetaMask, uses local node)
     const createBatch = useCallback(async (cropType, location) => {
-        let _contract = contract;
-        if (!_contract) _contract = await connectWallet();
-        const tx = await _contract.createBatch(cropType, location);
-        const receipt = await tx.wait();
-        return receipt;
+        try {
+            const provider = new ethers.JsonRpcProvider(GANACHE_RPC);
+            const signer = await provider.getSigner(0); // Automatically grabs the first local Ganache account
+            const directContract = new ethers.Contract(CONTRACT_ADDRESS, AgriChainArtifact.abi, signer);
+            
+            // Auto-assign Farmer role (2) to this Ganache account so the transaction won't revert
+            const currentRole = await directContract.roles(signer.address);
+            if (Number(currentRole) !== 2) {
+                const roleTx = await directContract.assignRole(signer.address, 2);
+                await roleTx.wait();
+            }
+
+            const tx = await directContract.createBatch(cropType, location);
+            const receipt = await tx.wait();
+            return receipt;
+        } catch (e) {
+            console.error('Direct createBatch failed', e);
+            throw e;
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [contract]);
+    }, []);
 
     // Signed write: assign a role to a wallet (open for demo; in prod, admin only)
     const assignRole = useCallback(async (walletAddress, roleIndex) => {

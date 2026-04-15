@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getProducts, getProducers, createProduct, updateProduct, deleteProduct } from '../services/api';
+import { useWeb3 } from '../hooks/useWeb3';
 import { QRCodeSVG } from 'qrcode.react';
 
 const getStatusColor = (status) => {
@@ -21,6 +22,7 @@ const formatStatus = (status) => {
 const empty = { name:'', batchNumber:'', producerId:'', category:'', quantity:'', unit:'kg', harvestDate:'', status:'FARM' };
 
 export default function Products() {
+  const { createBatch } = useWeb3();
   const [products, setProducts] = useState([]);
   const [producers, setProducers] = useState([]);
   const [form, setForm] = useState(empty);
@@ -54,8 +56,21 @@ export default function Products() {
         await updateProduct(editing, submitData); 
         setMsg({type:'success',text:'Product updated!'}); 
       } else { 
+        // 1. Get location from selected producer
+        const producerLocation = selectedProducer?.location || "Unknown Location";
+        
+        // 2. Send to Blockchain
+        try {
+          await createBatch(submitData.name, producerLocation);
+        } catch (err) {
+          console.error("Blockchain tx failed", err);
+          setMsg({type:'error',text:'Blockchain transaction failed! Make sure wallet has Farmer role.'});
+          return;
+        }
+
+        // 3. Save to Backend Database
         const result = await createProduct(submitData); 
-        setMsg({type:'success',text:'Product added via Smart Contract!'}); 
+        setMsg({type:'success',text:'Product added via Smart Contract & DB!'}); 
         setQrBatchId(submitData.batchNumber || result?.data?.id || submitData.id || "UNKNOWN");
         setShowSuccessQR(true);
       }
