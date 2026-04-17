@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { ethers } from 'ethers';
 import AgriChainArtifact from '../artifacts/AgriChain.json';
 import './Trace.css';
+import ProductFeedback from '../components/ProductFeedback';
 
 const CONTRACT_ADDRESS = process.env.REACT_APP_CONTRACT_ADDRESS || "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 const GANACHE_RPC = "http://127.0.0.1:7545";
@@ -15,6 +16,19 @@ const Trace = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reviews, setReviews] = useState([]);
+
+  const fetchReviews = async (batchId) => {
+    try {
+      const res = await fetch(`http://localhost:8080/api/feedback/${batchId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setReviews(data);
+      }
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+    }
+  };
 
   useEffect(() => {
     const fetchBatchData = async () => {
@@ -56,6 +70,9 @@ const Trace = () => {
 
         decodedEvents.sort((a, b) => a.timestamp - b.timestamp);
         setEvents(decodedEvents);
+        
+        // Fetch reviews
+        fetchReviews(batchData.id);
       } catch (err) {
         console.error("Error fetching trace data:", err);
         setError("Failed to fetch traceability data. Ensure the blockchain is running on Ganache.");
@@ -166,6 +183,31 @@ const Trace = () => {
           })}
         </div>
       </div>
+      
+      {batch && batch.id && (
+        <div style={{ marginTop: '2rem' }}>
+          {reviews.length > 0 && (
+            <div className="trace-card glassmorphism" style={{ marginBottom: '2rem' }}>
+              <h2 style={{ marginBottom: "1rem", color: '#e2e8f0', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>
+                Consumer Reviews
+              </h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {reviews.map(rev => (
+                  <div key={rev.id} style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ color: '#eab308', fontSize: '1.2rem' }}>{'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}</span>
+                      <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{new Date(rev.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    {rev.comment && <p style={{ color: '#cbd5e1', fontSize: '0.95rem', fontStyle: 'italic' }}>"{rev.comment}"</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <ProductFeedback batchId={batch.id} onReviewSubmitted={() => fetchReviews(batch.id)} />
+        </div>
+      )}
     </div>
   );
 };

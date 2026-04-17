@@ -3,12 +3,26 @@ import { useWeb3 } from '../hooks/useWeb3';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 
 import { getProductByBatch, getProduct } from '../services/api';
+import ProductFeedback from '../components/ProductFeedback';
 
 export default function Blockchain() {
   const { getBatchHistory } = useWeb3();
   const [scannedBatchId, setScannedBatchId] = useState('');
   const [scannedData, setScannedData] = useState(null);
   const [showScanner, setShowScanner] = useState(false);
+  const [reviews, setReviews] = useState([]);
+
+  const fetchReviews = async (batchId) => {
+    try {
+      const res = await fetch(`http://localhost:8080/api/feedback/${batchId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setReviews(data);
+      }
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+    }
+  };
 
   useEffect(() => {
     if (showScanner) {
@@ -49,6 +63,7 @@ export default function Blockchain() {
         
         if (data) {
             setScannedData(data);
+            fetchReviews(batchId);
         } else if (dbData) {
             // Construct a blockchain-like object from DB data so the UI works
             setScannedData({
@@ -58,8 +73,10 @@ export default function Blockchain() {
                 location: "DB Registered (Pending Block)",
                 timestamp: Math.floor(new Date(dbData.harvestDate || Date.now()).getTime() / 1000)
             });
+            fetchReviews(batchId);
         } else {
             setScannedData(null);
+            setReviews([]);
             alert("No product found on the blockchain or database for ID: " + batchId);
         }
     } catch (e) {
@@ -76,7 +93,7 @@ export default function Blockchain() {
       {/* QR Scan Integration */}
       <div className="card glassmorphism" style={{marginTop: '2rem'}}>
         <h2 style={{color: '#1976d2', marginBottom: '1rem'}}>📱 QR Scan Blockchain Trace</h2>
-        <p>Consumer Phygital Traceability. Scan a product's QR label to securely verify its entire lifecycle via smart contract.</p>
+        <p>Consumer physical and digital Traceability. Scan a product's QR label to securely verify its entire lifecycle via smart contract.</p>
         
         {!showScanner ? (
           <div style={{display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap'}}>
@@ -112,6 +129,28 @@ export default function Blockchain() {
                     <p><strong>Origin Location:</strong> {scannedData.location}</p>
                     <p><strong>Harvest Time:</strong> {new Date(scannedData.timestamp * 1000).toLocaleString()}</p>
                 </div>
+            </div>
+        )}
+
+        {scannedData && !showScanner && (
+            <div style={{ marginTop: '2rem' }}>
+              {reviews.length > 0 && (
+                <div className="card glassmorphism" style={{ marginBottom: '2rem' }}>
+                  <h3 style={{ marginTop: 0, color: '#eab308' }}>Consumer Reviews</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {reviews.map(rev => (
+                      <div key={rev.id} style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                          <span style={{ color: '#eab308', fontSize: '1.2rem' }}>{'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}</span>
+                          <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{new Date(rev.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        {rev.comment && <p style={{ color: '#cbd5e1', fontSize: '0.95rem', fontStyle: 'italic', margin: 0 }}>"{rev.comment}"</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <ProductFeedback batchId={scannedData.id} onReviewSubmitted={() => fetchReviews(scannedData.id)} />
             </div>
         )}
       </div>

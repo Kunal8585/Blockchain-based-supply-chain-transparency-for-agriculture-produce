@@ -9,6 +9,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ producers: 0, products: 0, shipments: 0, chainValid: true });
   const [latestBatch, setLatestBatch] = useState(null);
   const [loadingWeb3, setLoadingWeb3] = useState(true);
+  const [feedback, setFeedback] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem('agrichainToken');
@@ -55,6 +56,12 @@ export default function Dashboard() {
     fetchLatestBatch();
   }, []);
 
+  useEffect(() => {
+    fetch('http://localhost:8080/api/feedback')
+      .then(res => res.json())
+      .then(data => setFeedback(data))
+      .catch(err => console.error("Feedback fetch error:", err));
+  }, []);
 
   const stages = ['🌾 Farm', '🏭 Warehouse', '🚚 Distributor', '🏪 Retailer'];
 
@@ -113,19 +120,10 @@ export default function Dashboard() {
       <div className="card glassmorphism">
         <h2 style={{marginBottom: '1.5rem', color: '#1976d2'}}>🛡️ Smart Contract Data Interface</h2>
         <p style={{color: '#555', marginBottom: '1.5rem'}}>
-          Live monitoring of <strong>AgriChain.sol</strong> deployed contract interactions. Real-time RBAC and SupplyChain events are securely verified here.
+          Live monitoring of <strong>AgriChain.sol</strong> deployed contract interactions. Real-time SupplyChain events are securely verified here.
         </p>
         
         <div style={{display: 'flex', gap: '2rem', flexWrap: 'wrap'}}>
-          <div style={{flex: 1, minWidth: '300px', padding: '1rem', background: '#f5f7fa', borderRadius: '8px', borderLeft: '4px solid #1976d2'}}>
-            <h3 style={{color: '#333'}}>Access Control (RBAC)</h3>
-            <ul style={{listStyle: 'none', padding: 0, marginTop: '1rem', lineHeight: '1.8'}}>
-              <li>🔐 <strong>Inspector:</strong> Wallet 0x8aF... verified</li>
-              <li>👨‍🌾 <strong>Farmer:</strong> Wallet 0x3dC... registered</li>
-              <li>🚚 <strong>Distributor:</strong> Pending Authorization</li>
-            </ul>
-          </div>
-          
           <div style={{flex: 1, minWidth: '300px', padding: '1rem', background: '#f5f7fa', borderRadius: '8px', borderLeft: '4px solid #ff9800'}}>
             <h3 style={{color: '#333'}}>Latest SupplyChain Batch</h3>
             {loadingWeb3 ? (
@@ -136,7 +134,6 @@ export default function Dashboard() {
                   <li>🆔 <strong>produceId:</strong> #{latestBatch.id}</li>
                   <li>🌾 <strong>cropType:</strong> {latestBatch.cropType}</li>
                   <li>📍 <strong>currentLocation:</strong> {latestBatch.location}</li>
-                  <li>✅ <strong>isInspected:</strong> {latestBatch.isQualityVerified ? 'True' : 'Pending'}</li>
                 </ul>
                 <div style={{marginTop: '1.5rem'}}>
                   <QRCodeGenerator batchId={latestBatch.id} />
@@ -148,6 +145,56 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <div className="card glassmorphism" style={{ marginTop: '2rem' }}>
+        <h2 style={{ marginBottom: '1.5rem', color: '#eab308' }}>⭐ Product Feedback Overview</h2>
+        
+        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1', minWidth: '250px', padding: '1.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', textAlign: 'center', border: '1px solid rgba(234,179,8,0.2)' }}>
+            <h3 style={{ color: '#94a3b8', fontSize: '1rem', marginBottom: '0.5rem' }}>Average Rating</h3>
+            <div style={{ fontSize: '3.5rem', fontWeight: 'bold', color: '#eab308', lineHeight: '1' }}>
+              {feedback.length > 0 
+                ? (feedback.reduce((acc, curr) => acc + curr.rating, 0) / feedback.length).toFixed(1)
+                : '0.0'}
+            </div>
+            <div style={{ fontSize: '1.5rem', color: '#eab308', margin: '0.5rem 0' }}>
+              {'★'.repeat(Math.round(feedback.length > 0 ? (feedback.reduce((a,c)=>a+c.rating,0)/feedback.length) : 0))}
+              {'☆'.repeat(5 - Math.round(feedback.length > 0 ? (feedback.reduce((a,c)=>a+c.rating,0)/feedback.length) : 0))}
+            </div>
+            <p style={{ color: '#64748b' }}>Based on {feedback.length} reviews</p>
+          </div>
+          
+          <div style={{ flex: '2', minWidth: '300px' }}>
+            <h3 style={{ color: '#e2e8f0', marginBottom: '1rem' }}>Recent Reviews</h3>
+            {feedback.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                {[...feedback].reverse().slice(0, 10).map((rev) => (
+                  <div key={rev.id} style={{ display: 'flex', gap: '1rem', background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <img 
+                      src={`https://ui-avatars.com/api/?name=Consumer+${rev.id || Math.random()}&background=random`}
+                      alt="avatar" 
+                      style={{ width: '50px', height: '50px', borderRadius: '50%' }} 
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                        <span style={{ fontWeight: 'bold', color: '#e2e8f0' }}>Batch #{rev.batchId}</span>
+                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{new Date(rev.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <div style={{ color: '#eab308', fontSize: '1rem', marginBottom: '0.5rem' }}>
+                        {'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}
+                      </div>
+                      {rev.comment && <p style={{ color: '#cbd5e1', fontSize: '0.9rem', margin: 0 }}>"{rev.comment}"</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: '#64748b', fontStyle: 'italic' }}>No reviews yet. Check back later once consumers leave feedback!</p>
+            )}
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
